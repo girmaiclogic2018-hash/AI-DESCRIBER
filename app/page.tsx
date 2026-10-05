@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Zap, CreditCard, CheckCircle2, RefreshCw, Store, 
   Bot, FileText, ShieldCheck, Activity, ArrowRight, Settings, AlertCircle,
   Copy, Check, FileDown, Layers, Search, Filter, CheckSquare, Square, Eye, X, ArrowUpRight,
   FileSpreadsheet, MoreVertical, Trash2
 } from 'lucide-react';
+import { 
+  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
+} from 'recharts';
 import { exportProductDescriptionPdf, exportLicenseCertificatePdf } from '@/lib/pdf-export';
 import { exportCatalogToCsv } from '@/lib/csv-export';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -24,6 +27,14 @@ interface CatalogProduct {
 
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState<'sandbox' | 'automation' | 'billing' | 'bank-store'>('sandbox');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
   
   // Bank & Store Checkout state
   const [bankInfo, setBankInfo] = useState({
@@ -338,6 +349,44 @@ export default function AppDashboard() {
     { id: 2, time: '14 mins ago', product: 'Organic Cotton Crewneck', status: 'Enriched', idNum: 'gid://shopify/Product/8491823' },
     { id: 3, time: '1 hour ago', product: 'Brass Desk Lamp', status: 'Skipped (Has Description)', idNum: 'gid://shopify/Product/8489912' },
   ]);
+  const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(30);
+
+  useEffect(() => {
+    if (activeTab !== 'automation') return;
+
+    const timer = setInterval(() => {
+      setSecondsUntilRefresh(prev => {
+        if (prev <= 1) {
+          const backgroundMockProducts = [
+            { title: 'AeroGlide Carbon Fiber Road Bike', vendor: 'Velocita', tags: 'bike, carbon, road, aerodynamic' },
+            { title: 'EcoSip Leakproof Bamboo Water Bottle', vendor: 'EcoVessel', tags: 'bottle, bamboo, eco-friendly, leakproof' },
+            { title: 'PeakPerformance Trail Running Vest', vendor: 'AlpineGear', tags: 'running, vest, trail, hydration' },
+            { title: 'ThermaGlow Intelligent Coffee Warmer', vendor: 'HomeTech', tags: 'coffee, warmer, smart, kitchen' },
+            { title: 'ZenBreath Aromatherapy Diffuser', vendor: 'Satori', tags: 'diffuser, aromatherapy, wellness' },
+          ];
+          const randomProduct = backgroundMockProducts[Math.floor(Math.random() * backgroundMockProducts.length)];
+          const randomId = Math.floor(Math.random() * 9000000 + 1000000);
+
+          setLogs(currentLogs => [
+            {
+              id: Date.now(),
+              time: 'Just now',
+              product: randomProduct.title,
+              status: 'Enriched Successfully via OpenAI GPT-4o',
+              idNum: `gid://shopify/Product/${randomId}`
+            },
+            ...currentLogs
+          ]);
+
+          return 30;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [activeTab]);
+
   const [isSimulatingWebhook, setIsSimulatingWebhook] = useState(false);
 
   // Billing state
@@ -1377,7 +1426,7 @@ export default function AppDashboard() {
             </div>
 
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Listening Status</p>
                 <div className="flex items-center gap-2 mt-2">
@@ -1394,9 +1443,101 @@ export default function AppDashboard() {
                 <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">+16% this week</p>
               </div>
               <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Enrichment Health</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">
+                  {(((181 + logs.filter(log => log.status === 'Enriched' || log.status.toLowerCase().includes('success')).length) / (184 + logs.length)) * 100).toFixed(1)}%
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">
+                  {181 + logs.filter(log => log.status === 'Enriched' || log.status.toLowerCase().includes('success')).length} / {184 + logs.length} runs ok
+                </p>
+              </div>
+              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Average Latency</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">412ms</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">GraphQL update speed</p>
+              </div>
+            </div>
+
+            {/* 7-Day Trend Chart */}
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  7-Day Webhook Enrichment Velocity
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Daily breakdown of processed webhooks and successful semantic description enrichment runs.
+                </p>
+              </div>
+
+              <div className="h-[220px] w-full">
+                {mounted ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={[
+                        { name: 'Oct 1', enriched: 12, webhooks: 14 },
+                        { name: 'Oct 2', enriched: 18, webhooks: 19 },
+                        { name: 'Oct 3', enriched: 15, webhooks: 18 },
+                        { name: 'Oct 4', enriched: 28, webhooks: 30 },
+                        { name: 'Oct 5', enriched: 22, webhooks: 25 },
+                        { name: 'Oct 6', enriched: 35, webhooks: 38 },
+                        { name: 'Oct 7', enriched: 42, webhooks: 44 },
+                      ]}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#94a3b8" 
+                        fontSize={10} 
+                        tickLine={false} 
+                        axisLine={false} 
+                      />
+                      <YAxis 
+                        stroke="#94a3b8" 
+                        fontSize={10} 
+                        tickLine={false} 
+                        axisLine={false} 
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: '#1e293b',
+                          borderColor: '#334155',
+                          borderRadius: '8px',
+                          color: '#fff',
+                          fontSize: '11px',
+                        }}
+                      />
+                      <Legend 
+                        verticalAlign="top" 
+                        height={36} 
+                        iconType="circle"
+                        iconSize={8}
+                        wrapperStyle={{ fontSize: '11px' }}
+                      />
+                      <Line
+                        name="Enriched Products"
+                        type="monotone"
+                        dataKey="enriched"
+                        stroke="#4f46e5"
+                        strokeWidth={2.5}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line
+                        name="Received Webhooks"
+                        type="monotone"
+                        dataKey="webhooks"
+                        stroke="#0ea5e9"
+                        strokeWidth={1.5}
+                        strokeDasharray="4 4"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full w-full flex items-center justify-center text-xs text-slate-400">
+                    Loading trend intelligence...
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1407,7 +1548,13 @@ export default function AppDashboard() {
                   <Activity className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   Recent Background Automation Logs
                 </h3>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Real-time webhook events</span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900 px-2 py-0.5 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+                    Auto-refresh in {secondsUntilRefresh}s
+                  </span>
+                  <span className="text-xs text-slate-400 dark:text-slate-500">Real-time webhook events</span>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
