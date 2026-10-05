@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@keyframes ripple-effect {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.85;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(6.5);
+    opacity: 0;
+  }
+}
+
+.ripple-animation {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform-origin: center center;
+  transform: translate(-50%, -50%);
+  animation: ripple-effect 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+.ripple,
+.btn-ripple,
+.animate-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  transform-origin: center center;
+  transform: translate(-50%, -50%);
+  animation: ripple-effect 0.35s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}

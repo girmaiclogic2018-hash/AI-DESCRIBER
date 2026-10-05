@@ -1,0 +1,6 @@
+{
+  "name": "AI Describer - Autonomous Shopify Product Descriptions",
+  "description": "Autonomous 24/7 Shopify AI Product Description Generator & Billing Engine with background webhook automation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
